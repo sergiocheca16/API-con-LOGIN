@@ -6,7 +6,7 @@ const axios = require('axios');
 
 //Login
 router.get('/', async (req, res) => {
-    const loginForm = `
+  const loginForm = `
     <form action="/login" method="post">
       <label for="username">Usuario:</label>
       <input type="text" id="username" name="username" required><br>
@@ -16,15 +16,14 @@ router.get('/', async (req, res) => {
   
       <button type="submit">Iniciar sesión</button>
     </form>
-    <a href="/dashboard">dashboard</a>
-    `;
+  `;
 
-    const noLogin = `
+  const noLogin = `
     <a href="/search">Buscar</a>
     <form action="/logout" method="post">
         <button type="submit">Cerrar sesión</button>
     </form>
-    `;
+  `;
 
   if (req.session.token) {
     return res.send(noLogin)
@@ -35,75 +34,86 @@ router.get('/', async (req, res) => {
 
 //Login
 router.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find((user) => user.username === username && user.password === password);
+  const { username, password } = req.body;
+  const user = users.find((user) => user.username === username && user.password === password);
   
-    if (user) {
-      const token = generateToken(user);
-      req.session.token = token;
-      res.redirect('/characters');
-    } else {
-      res.status(401).json({ mensaje: 'Credenciales incorrectas' });
-    }
-  });
-
-//Logout
-router.post('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-  });
+  if (user) {
+    const token = generateToken(user);
+    req.session.token = token;
+    res.redirect('/characters');
+  } else {
+    res.status(401).json({ mensaje: 'Credenciales incorrectas' });
+  }
+});
 
 //Obtener todos los personajes
 router.get('/characters', verifyToken, async (req, res) => {
-    try {
-        const { data } = await axios.get('https://rickandmortyapi.com/api/character');
-        const characters = data.results.map(({ id, name, status, species, gender, origin, image }) => ({
-            id, name, status, species, gender, originName: origin.name, image
-        }));
-        res.json(characters);
-    } catch {
-        res.status(404).send('Error al obtener personajes');
-    }
+  try {
+    const { data } = await axios.get('https://rickandmortyapi.com/api/character');
+    const characters = data.results.map(({ id, name, status, species, gender, origin, image }) => ({
+    id, name, status, species, gender, originName: origin.name, image
+    }));
+    res.json(characters);
+  } catch {
+    res.status(404).send('Error al obtener personajes');
+  }
 });
 
 //search
-router.get('/search', (req, res) => {
-    res.send(`
-        <form action="/characters" method="post"> 
-            <label for='character'>Buscar personaje: </label>
-            <input type='text' id='character' name='character'>
-            <button type="submit">Buscar</button>
-        </form>
-        <form action="/logout" method="post">
-            <button type="submit">Cerrar sesión</button>
-        </form>
-        `)
+router.get('/search', verifyToken, (req, res) => {
+  res.send(`
+    <form action="/characters/search" method="post"> 
+      <label for='character'>Buscar personaje: </label>
+      <input type='text' id='character' name='character'>
+      <button type="submit">Buscar</button>
+    </form>
+    form action="/logout" method="post">
+      <button type="submit">Cerrar sesión</button>
+    </form>
+  `)
 });
 
+router.post('/characters/search', verifyToken, (req, res) => {
+  const characterName = req.body.character;
+  res.redirect(`/characters/${characterName}`);
+ 
+}); 
+
 //Obtener personaje por nombre
-router.post('/characters', verifyToken, async (req, res) => {
-    const name = req.body.character;
-    //console.log(name)
-    const url = `https://rickandmortyapi.com/api/character/?name=${name}`
+router.get('/characters/:nombre', verifyToken, async (req, res) => {
+    
 
-    try {
-        const response = await axios.get(url)
-        const characters = response.data.results
+  
+  const name = req.params.nombre;
+  //console.log(name)
+  const url = `https://rickandmortyapi.com/api/character/?name=${name}`
 
-        const characterData = characters.map(character => ({
-            id: character.id,
-            name: character.name,
-            status: character.status,
-            species: character.species,
-            gender: character.gender,
-            origin: character.origin.name,
-            image: character.image
-        }));
+  try {
+    const response = await axios.get(url)
+    const characters = response.data.results
+      //console.log(characters)
+
+    const characterData = characters.map(character => ({
+      id: character.id,
+      name: character.name,
+      status: character.status,
+      species: character.species,
+      gender: character.gender,
+      origin: character.origin.name,
+      image: character.image
+    }));
+    //console.log(characterData)
+    res.json(characterData)
         
-        res.json(characterData)
-    } catch {
-        res.status(404).json({error: 'personaje no encontrado'})
-    }
+  } catch {
+    res.status(404).json({error: 'personaje no encontrado'})
+  }
+});
+
+//Logout
+router.post('/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/');
 });
 
 module.exports = router;
