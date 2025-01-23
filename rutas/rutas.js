@@ -67,7 +67,7 @@ router.get('/search', verifyToken, (req, res) => {
       <input type='text' id='character' name='character'>
       <button type="submit">Buscar</button>
     </form>
-    form action="/logout" method="post">
+    <form action="/logout" method="post">
       <button type="submit">Cerrar sesión</button>
     </form>
   `)
